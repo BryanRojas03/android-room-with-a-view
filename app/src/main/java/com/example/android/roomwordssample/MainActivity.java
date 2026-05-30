@@ -1,28 +1,13 @@
 package com.example.android.roomwordssample;
 
-/*
- * Copyright (C) 2017 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.Toolbar;
@@ -30,7 +15,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.util.List;
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,19 +35,38 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Get a new or existing ViewModel from the ViewModelProvider.
-        mWordViewModel = ViewModelProviders.of(this).get(WordViewModel.class);
+        mWordViewModel = new ViewModelProvider(this).get(WordViewModel.class);
 
-        // Add an observer on the LiveData returned by getAlphabetizedWords.
-        // The onChanged() method fires when the observed data changes and the activity is
-        // in the foreground.
         mWordViewModel.getAllWords().observe(this, new Observer<List<Word>>() {
             @Override
             public void onChanged(@Nullable final List<Word> words) {
-                // Update the cached copy of the words in the adapter.
                 adapter.setWords(words);
             }
         });
+
+        // Swipe para eliminar palabra
+        ItemTouchHelper helper = new ItemTouchHelper(
+                new ItemTouchHelper.SimpleCallback(0,
+                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+
+                    @Override
+                    public boolean onMove(RecyclerView recyclerView,
+                                          RecyclerView.ViewHolder viewHolder,
+                                          RecyclerView.ViewHolder target) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                        int position = viewHolder.getAdapterPosition();
+                        Word word = adapter.getWordAt(position);
+                        mWordViewModel.delete(word);
+                        Toast.makeText(MainActivity.this,
+                                "\"" + word.getWord() + "\" eliminada",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+        helper.attachToRecyclerView(recyclerView);
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
